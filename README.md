@@ -26,7 +26,12 @@ Set up your Exceptional API keys in `settings.py`:
 
 Done! Remember, the middleware will only log exceptions when `DEBUG` is off.
 
+IF you want to send an exception manually after catching it yourself, you can do so with:
 
+    e = Exceptional()
+    e.send(exception)
+    
+    
 ## (Un)license
 
 This is free and unencumbered software released into the public domain.

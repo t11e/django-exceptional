@@ -25,10 +25,10 @@ EXCEPTIONAL_API_ENDPOINT = getattr(settings, 'EXCEPTIONAL_API_ENDPOINT',
 LOG = logging.getLogger('djexceptional')
 
 
-class ExceptionalMiddleware(object):
+class Exceptional(object):
 
     """
-    Middleware to interface with the Exceptional service.
+    Class to interface with the Exceptional service.
 
     Requires very little intervention on behalf of the user; you just need to
     add `EXCEPTIONAL_API_KEY` to your Django settings. You can also optionally
@@ -37,9 +37,7 @@ class ExceptionalMiddleware(object):
     """
 
     def __init__(self):
-        if settings.DEBUG:
-            raise MiddlewareNotUsed
-
+ 
         try:
             self.api_key = settings.EXCEPTIONAL_API_KEY
         except AttributeError:
@@ -50,10 +48,12 @@ class ExceptionalMiddleware(object):
             "protocol_version": EXCEPTIONAL_PROTOCOL_VERSION
             })
 
-    def process_exception(self, request, exc):
-        info = {}
+    def send(self, exc, context = None, info = None):
+        if not info:
+            info = {}
+        if context:
+            info['context'] = context
         info.update(self.environment_info())
-        info.update(self.request_info(request))
         info.update(self.exception_info(exc, sys.exc_info()[2]))
 
         payload = self.compress(json_dumps(info))
@@ -69,7 +69,7 @@ class ExceptionalMiddleware(object):
                 conn.close()
         except Exception, exc:
             LOG.exception("Error communicating with the Exceptional service: %r", exc)
-
+            
     @staticmethod
     def compress(bytes):
         """Compress a bytestring using gzip."""
@@ -112,37 +112,6 @@ class ExceptionalMiddleware(object):
                     }
                 }
 
-    def request_info(self, request):
-
-        """
-        Return a dictionary of information for a given request.
-
-        This will be run once for every request.
-        """
-
-        # We have to re-resolve the request path here, because the information
-        # is not stored on the request.
-        view, args, kwargs = resolve(request.path)
-        for i, arg in enumerate(args):
-            kwargs[i] = arg
-
-        parameters = {}
-        parameters.update(kwargs)
-        parameters.update(request.POST.items())
-        parameters = self.filter_params(parameters)
-
-        return {
-                "request": {
-                    "session": dict(request.session),
-                    "remote_ip": request.META["REMOTE_ADDR"],
-                    "parameters": parameters,
-                    "action": view.__name__,
-                    "controller": view.__module__,
-                    "url": request.build_absolute_uri(),
-                    "request_method": request.method,
-                    "headers": meta_to_http(request.META)
-                    }
-                }
 
     def exception_info(self, exception, tb, timestamp=None):
         backtrace = []
@@ -196,3 +165,47 @@ class ExceptionalMiddleware(object):
             if "password" in key:
                 del params[key]
         return params
+
+
+class ExceptionalMiddleware(Exceptional):
+    def __init__(self):
+        if settings.DEBUG:
+            raise MiddlewareNotUsed
+        super(ExceptionalMiddleware,self).__init__()
+
+    def process_exception(self, request, exc):
+        info = {}
+        info.update(self.request_info(request))
+        self.send(exc,info=info)
+
+    def request_info(self, request):
+
+        """
+        Return a dictionary of information for a given request.
+
+        This will be run once for every request.
+        """
+
+        # We have to re-resolve the request path here, because the information
+        # is not stored on the request.
+        view, args, kwargs = resolve(request.path)
+        for i, arg in enumerate(args):
+            kwargs[i] = arg
+
+        parameters = {}
+        parameters.update(kwargs)
+        parameters.update(request.POST.items())
+        parameters = self.filter_params(parameters)
+
+        return {
+                "request": {
+                    "session": dict(request.session),
+                    "remote_ip": request.META["REMOTE_ADDR"],
+                    "parameters": parameters,
+                    "action": view.__name__,
+                    "controller": view.__module__,
+                    "url": request.build_absolute_uri(),
+                    "request_method": request.method,
+                    "headers": meta_to_http(request.META)
+                    }
+                }
