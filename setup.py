@@ -23,7 +23,7 @@ def get_version():
 
 setup(
     name             = 'django-exceptional',
-    version          = get_version(),
+    version          = '1.3',
     author           = "Zachary Voase",
     author_email     = "z@zacharyvoase.com",
     url              = 'http://github.com/zacharyvoase/django-exceptional',
