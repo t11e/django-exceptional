@@ -162,7 +162,7 @@ class Exceptional(object):
         """Filter sensitive information out of parameter dictionaries."""
 
         for key in params.keys():
-            if "password" in key:
+            if "password" in unicode(key):
                 del params[key]
         return params
 
