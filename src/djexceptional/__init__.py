@@ -202,8 +202,8 @@ class ExceptionalMiddleware(Exceptional):
                     "session": dict(request.session),
                     "remote_ip": request.META["REMOTE_ADDR"],
                     "parameters": parameters,
-                    "action": view.__name__,
-                    "controller": view.__module__,
+                    "action": view.getattr('__name__', view.__class__.name),
+                    "controller": view.getattr('__module__', view.__class__.module),
                     "url": request.build_absolute_uri(),
                     "request_method": request.method,
                     "headers": meta_to_http(request.META)
