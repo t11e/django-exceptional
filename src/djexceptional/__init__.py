@@ -202,9 +202,13 @@ class ExceptionalMiddleware(Exceptional):
         parameters.update(request.POST.items())
         parameters = self.filter_params(parameters)
 
+        if hasattr(request, 'session'):
+            session = dict(request.session)
+        else:
+            session = None
         return {
                 "request": {
-                    "session": dict(request.session),
+                    "session": session,
                     "remote_ip": request.META["REMOTE_ADDR"],
                     "parameters": parameters,
                     "action": getattr(view, '__name__', view.__class__.__name__),
