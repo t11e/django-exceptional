@@ -12,6 +12,7 @@ import urllib2
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed, ImproperlyConfigured
 from django.core.urlresolvers import resolve
+from django.http import (HttpResponse, Http404, BadHeaderError)
 
 from djexceptional.utils import memoize, json_dumps, meta_to_http
 
@@ -174,12 +175,16 @@ class ExceptionalMiddleware(Exceptional):
         super(ExceptionalMiddleware,self).__init__()
 
     def process_exception(self, request, exc):
+        # Ignore standard Django exceptions
+        if isinstance(exc, Http404) or isinstance(exc, HttpResponse) or \
+            isinstance(exc, BadHeaderError):
+            return None
+
         info = {}
         info.update(self.request_info(request))
         self.send(exc,info=info)
 
     def request_info(self, request):
-
         """
         Return a dictionary of information for a given request.
 
